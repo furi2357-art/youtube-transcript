@@ -25,6 +25,8 @@ EXTRA_URLS = [
     f"https://www.youtube.com/channel/{CHANNEL_ID}/videos?view=2&sort=dd&shelf_id=0"
 ]
 
+YT_DLP = [sys.executable, "-m", "yt_dlp"]
+
 
 def sanitize_filename(name: str) -> str:
     """파일명에 사용 불가능한 특수문자를 제거·치환합니다."""
@@ -38,8 +40,7 @@ def collect_video_ids(url: str) -> list[dict]:
     --flat-playlist 로 영상 ID·제목 목록을 수집합니다.
     실패 시 빈 리스트를 반환합니다.
     """
-    cmd = [
-        "yt-dlp",
+    cmd = YT_DLP + [
         "--cookies-from-browser", BROWSER,
         "--flat-playlist",
         "--print", "%(id)s\t%(title)s",
@@ -74,8 +75,7 @@ def download_subtitle(video_id: str, tmp_dir: str) -> str | None:
     영상의 자막 vtt 파일을 tmp_dir 에 다운로드합니다.
     성공 시 vtt 파일 경로, 실패 시 None 반환.
     """
-    cmd = [
-        "yt-dlp",
+    cmd = YT_DLP + [
         "--cookies-from-browser", BROWSER,
         "--skip-download",
         "--write-auto-sub",
