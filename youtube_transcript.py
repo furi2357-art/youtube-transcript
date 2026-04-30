@@ -15,17 +15,17 @@ import tempfile
 from pathlib import Path
 
 # ─── 사용자 설정 ─────────────────────────────────────────────────────────────
-CHANNEL_URL = "https://www.youtube.com/@채널명/videos"
-CHANNEL_ID  = "UCxxxxxxxxxxxxxxxxxxxxxxxx"
-BROWSER     = "chrome"   # chrome / firefox / edge / safari
-OUTPUT_DIR  = "transcripts"
+CHANNEL_URL  = "https://www.youtube.com/@학원복습영상/videos"
+CHANNEL_ID   = "UC_RHhQtkktz_L-Js5onygBw"
+COOKIES_FILE = "cookies.txt"   # youtube_transcript.py 와 같은 폴더에 위치
+OUTPUT_DIR   = "transcripts"
 # ─────────────────────────────────────────────────────────────────────────────
+
+YT_DLP = [sys.executable, "-m", "yt_dlp"]
 
 EXTRA_URLS = [
     f"https://www.youtube.com/channel/{CHANNEL_ID}/videos?view=2&sort=dd&shelf_id=0"
 ]
-
-YT_DLP = [sys.executable, "-m", "yt_dlp"]
 
 
 def sanitize_filename(name: str) -> str:
@@ -41,7 +41,7 @@ def collect_video_ids(url: str) -> list[dict]:
     실패 시 빈 리스트를 반환합니다.
     """
     cmd = YT_DLP + [
-        "--cookies-from-browser", BROWSER,
+        "--cookies", COOKIES_FILE,
         "--flat-playlist",
         "--print", "%(id)s\t%(title)s",
         "--no-warnings",
@@ -76,7 +76,7 @@ def download_subtitle(video_id: str, tmp_dir: str) -> str | None:
     성공 시 vtt 파일 경로, 실패 시 None 반환.
     """
     cmd = YT_DLP + [
-        "--cookies-from-browser", BROWSER,
+        "--cookies", COOKIES_FILE,
         "--skip-download",
         "--write-auto-sub",
         "--write-sub",
