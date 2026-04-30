@@ -1,11 +1,4 @@
-"""
-YouTube 채널 자막 일괄 추출기
-yt-dlp를 사용해 공개·일부공개·비공개 영상의 자막을 텍스트 파일로 저장합니다.
-
-의존성 설치:
-    pip install yt-dlp
-"""
-
+import csv
 import json
 import os
 import re
@@ -15,17 +8,32 @@ import tempfile
 from pathlib import Path
 
 # ─── 사용자 설정 ─────────────────────────────────────────────────────────────
-CHANNEL_URL  = "https://www.youtube.com/@학원복습영상/videos"
+CHANNEL_URL  = "https://www.youtube.com/channel/UC_RHhQtkktz_L-Js5onygBw"
 CHANNEL_ID   = "UC_RHhQtkktz_L-Js5onygBw"
-COOKIES_FILE = "cookies.txt"   # youtube_transcript.py 와 같은 폴더에 위치
+COOKIES_FILE = "cookies.txt"
+TAKEOUT_CSV  = "동영상.csv"   # 구글 테이크아웃 CSV (없으면 건너뜀)
 OUTPUT_DIR   = "transcripts"
 # ─────────────────────────────────────────────────────────────────────────────
 
 YT_DLP = [sys.executable, "-m", "yt_dlp"]
 
 EXTRA_URLS = [
-    f"https://www.youtube.com/channel/{CHANNEL_ID}/videos?view=2&sort=dd&shelf_id=0"
+    f"https://www.youtube.com/playlist?list=UU{CHANNEL_ID[2:]}"
 ]
+
+
+def load_takeout_csv() -> dict:
+    path = Path(TAKEOUT_CSV)
+    if not path.exists():
+        return {}
+    result = {}
+    with open(path, encoding="utf-8-sig") as f:
+        for row in csv.DictReader(f):
+            vid   = (row.get("동영상 ID") or row.get("Video ID") or "").strip()
+            title = (row.get("제목") or row.get("Title") or vid).strip()
+            if vid:
+                result[vid] = title
+    return result
 
 
 def sanitize_filename(name: str) -> str:
@@ -158,7 +166,7 @@ def run():
     print("영상 목록 수집 중...")
 
     all_urls = [CHANNEL_URL] + EXTRA_URLS
-    id_map: dict[str, str] = {}   # video_id -> title (중복 제거용)
+    id_map: dict[str, str] = {}
 
     for url in all_urls:
         print(f"  수집: {url}")
@@ -166,6 +174,16 @@ def run():
         print(f"  → {len(videos)}개 발견")
         for v in videos:
             id_map.setdefault(v["id"], v["title"])
+
+    # 구글 테이크아웃 CSV에서 비공개·일부공개 영상 ID 추가
+    takeout = load_takeout_csv()
+    if takeout:
+        before = len(id_map)
+        for vid, title in takeout.items():
+            id_map.setdefault(vid, title)
+        print(f"  CSV에서 {len(takeout)}개 로드 → 신규 추가 {len(id_map) - before}개")
+    else:
+        print(f"  ({TAKEOUT_CSV} 없음 — 공개 영상만 처리)")
 
     total = len(id_map)
     print(f"\n중복 제거 후 총 {total}개 영상\n")
